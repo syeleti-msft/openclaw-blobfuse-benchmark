@@ -1,0 +1,14 @@
+Backport of openclaw/openclaw#178107 ("applyPrivateModeSync skips same-mode chmod") to the
+OpenClaw 2026.7.1-2 npm package. Applied by openclaw-178107.sh; the bundle file name is from that
+release.
+
+--- a/dist/openclaw-state-db-DzSsA9Ji.js
++++ b/dist/openclaw-state-db-DzSsA9Ji.js
+@@ -284,6 +284,7 @@
+ * weakening real permission failures.
+ */
+ function applyPrivateModeSync(target, mode) {
++	if ((statSync(target).mode & 4095) === mode) return { applied: true };
+ 	try {
+ 		chmodSync(target, mode);
+ 		return { applied: true };

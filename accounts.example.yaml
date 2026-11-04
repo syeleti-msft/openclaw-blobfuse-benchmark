@@ -1,0 +1,11 @@
+# Copy to accounts.yaml (git-ignored) and fill in your storage accounts.
+# Only the account-name / account-key pairs are read; keys are never printed or logged.
+# Use the same names in FNS_ACCT / HNS_ACCT when running the scripts.
+
+fns:
+  account-name: myfnsaccount
+  account-key: <key of an account WITHOUT hierarchical namespace>
+
+hns:
+  account-name: myhnsaccount
+  account-key: <key of an account WITH hierarchical namespace (ADLS Gen2)>

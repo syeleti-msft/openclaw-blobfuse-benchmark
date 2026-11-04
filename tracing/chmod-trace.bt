@@ -1,0 +1,44 @@
+#!/usr/bin/env bpftrace
+// Kernel-side chmod tracer: one event per chmod_common() call (covers chmod, fchmod,
+// fchmodat, fchmodat2). Lines sharing the same <key> (tid:start_ns) belong to one event:
+//   EV|key|iso_ts|pid|tid|ppid|proc|thread|fstype|old_mode|req_mode|ret|lat_us
+//   PA|key|p4/p3/p2/p1/name      (last path components)
+//   CG|key|cgroup
+//   ST|key|<user stack>
+config = { max_strlen = 64 }
+
+BEGIN { printf("READY %s\n", strftime("%Y-%m-%dT%H:%M:%S.%f", nsecs)); }
+
+kfunc:vmlinux:chmod_common
+{
+  $k = nsecs;
+  @t0[tid] = $k;
+  @old[tid] = args->path->dentry->d_inode->i_mode;
+  printf("ST|%d:%llu|%s\n", tid, $k, ustack(perf, 14));
+}
+
+kretfunc:vmlinux:chmod_common /@t0[tid]/
+{
+  $k = @t0[tid];
+  printf("EV|%d:%llu|%s|%d|%d|%d|%s|%s|%s|%o|%o|%d|%llu\n", tid, $k,
+    strftime("%Y-%m-%dT%H:%M:%S.%f", nsecs), pid, tid, curtask->real_parent->tgid,
+    curtask->group_leader->comm, comm, str(args->path->dentry->d_sb->s_type->name),
+    @old[tid] & 07777, args->mode & 07777, retval, (nsecs - $k) / 1000);
+  $d = args->path->dentry;
+  printf("PA|%d:%llu|%s/%s/%s/%s/%s\n", tid, $k,
+    str($d->d_parent->d_parent->d_parent->d_parent->d_name.name),
+    str($d->d_parent->d_parent->d_parent->d_name.name),
+    str($d->d_parent->d_parent->d_name.name),
+    str($d->d_parent->d_name.name), str($d->d_name.name));
+  printf("CG|%d:%llu|%s\n", tid, $k, cgroup_path(cgroup));
+  delete(@t0[tid]);
+  delete(@old[tid]);
+}
+
+END { clear(@t0); clear(@old); }
+
+// Process tree, so analysis can keep only the benchmark's descendants: FK|parent_tgid|child_pid
+tracepoint:sched:sched_process_fork
+{
+  printf("FK|%d|%d\n", pid, args->child_pid);
+}

@@ -1,0 +1,5 @@
+# Storage account keys
+accounts.yaml
+# Runs, caches, binaries, OpenClaw state snapshots (contain tokens)
+work/
+__pycache__/

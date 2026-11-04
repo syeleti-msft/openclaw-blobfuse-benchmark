@@ -1,0 +1,32 @@
+diff --git a/scripts/benchmark.py b/scripts/benchmark.py
+index 2cfbe78..cf8e069 100644
+--- a/scripts/benchmark.py
++++ b/scripts/benchmark.py
+@@ -796,12 +796,12 @@ def main():
+     runner.load_tasks()
+ 
+     model_slug = slugify_model(args.model)
+-    run_root = Path("/tmp/pinchbench")
++    run_root = Path(os.environ.get("PINCHBENCH_RUN_ROOT", "/tmp/pinchbench"))
+     run_id = _next_run_id(run_root)
+     skill_dir = skill_root
+     agent_id = f"bench-{model_slug}"
+     # Use a shared workspace for the agent - we'll copy fixtures per task
+-    agent_workspace = Path(f"/tmp/pinchbench/{run_id}/agent_workspace")
++    agent_workspace = run_root / run_id / "agent_workspace"
+ 
+     # Validate model exists before wasting time on tasks
+     if args.base_url:
+diff --git a/scripts/lib_agent.py b/scripts/lib_agent.py
+index ec2d3c4..49bfc1e 100644
+--- a/scripts/lib_agent.py
++++ b/scripts/lib_agent.py
+@@ -416,7 +416,7 @@ def prepare_task_workspace(skill_dir: Path, run_id: str, task: Task, agent_id: s
+     if workspace is None:
+         # Fallback to task-specific workspace if agent workspace not found
+         logger.warning("Could not find agent workspace, using fallback")
+-        workspace = Path(f"/tmp/pinchbench/{run_id}/{task.task_id}")
++        workspace = Path(os.environ.get("PINCHBENCH_RUN_ROOT", "/tmp/pinchbench")) / run_id / task.task_id
+ 
+     _BOOTSTRAP_FILES = ["SOUL.md", "BOOTSTRAP.md", "USER.md", "IDENTITY.md", "HEARTBEAT.md", "TOOLS.md"]
+ 
